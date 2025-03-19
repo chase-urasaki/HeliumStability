@@ -58,7 +58,7 @@ ABerr_corr = binary_table['FluxErrABTelluCorrected']
 #%%
 # Only grab between certain portions of the wl range )
 # Define the wavelength range
-wl_min, wl_max = 1080, 1085
+wl_min, wl_max = 1000, 1100
 
 # Get indices where wavelengths are within the range
 indices = np.where((wl >= wl_min) & (wl <= wl_max))[0]
@@ -166,3 +166,73 @@ plt.text(air_to_vac(Mg_1_air), 0.013,  'Mg I - vac', rotation=90)
 
 plt.title('Spectrum in vac and doppler corrected - wl matches!')
 #%%
+
+# Try fitting the Mg line first 
+from specutils import Spectrum1D
+# %%
+# Create spectrum1d object 
+spectrum = Spectrum1D(spectral_axis=apply_doppler_correction(extracted_interval_wl, v_star)*u.nm, flux = extracted_interval_ABflux_corr*u.dimensionless_unscaled)
+plt.plot(spectrum.spectral_axis, spectrum.flux, label = 'original spectrum', alpha=0.7)
+plt.xlabel('Wavelength [nm]')
+plt.ylabel('Flux')
+from specutils.fitting import fit_generic_continuum
+
+continuum_fit = fit_generic_continuum(spectrum)
+continuum = continuum_fit(spectrum.spectral_axis)
+
+plt.plot(spectrum.spectral_axis, continuum, label = 'continuum', ls = '--', color = 'r')
+plt.xlabel('Wavelength [nm]')
+plt.ylabel('Flux')
+plt.legend()
+plt.xlim(1080, 1085)
+
+#%%
+# Now normalize the spectrum 
+normalized_flux = spectrum.flux / continuum
+
+plt.plot(spectrum.spectral_axis, normalized_flux, label = 'normalized flux', alpha = 0.7)
+#Plot measured and line positions
+plt.axvline(HeI_1_vac, color='red', linestyle='dotted')
+plt.axvline(HeI_2_vac, color='red', linestyle='dotted')
+plt.axvline(HeI_3_vac, color='red', linestyle='dotted')
+plt.text(HeI_1_vac, 0.4, 'He I - vac ', rotation=90)
+plt.axvline(air_to_vac(Si_1_air), color = 'green', ls = 'dotted')
+plt.text(air_to_vac(Si_1_air), 0.4, 'Si I - vac', rotation = 90)
+plt.axvline(air_to_vac(Mg_1_air), color = 'blue', ls = 'dotted')
+plt.text(air_to_vac(Mg_1_air), 0.4,  'Mg I - vac', rotation=90)
+
+
+plt.xlabel('Wavelength [nm]')
+plt.ylabel('Normalized Flux')
+plt.legend()
+plt.xlim(1080, 1085)
+#%%
+len(spectrum.spectral_axis)
+
+# %%
+from astropy.modeling import models, fitting
+wavelengths = apply_doppler_correction(extracted_interval_wl, v_star)
+flux = extracted_interval_ABflux_corr
+poly_init = models.Polynomial1D(degree=3)
+fitter = fitting.LinearLSQFitter()
+continuum_model = fitter(poly_init, wavelengths, flux)
+#%%
+# Evaluate the fitted continuum
+continuum_flux = continuum_model(wavelengths)
+
+#plt.scatter(wavelengths, flux, label="Original Spectrum", alpha=0.7, marker='.', s = 0.5)
+plt.plot(wavelengths, flux, label="Original Spectrum", alpha=0.7)
+plt.plot(wavelengths, continuum_flux, ls = '--', c='r')
+plt.ylabel("Flux")
+plt.legend()
+plt.xlim(1080,1085)
+plt.show()
+# %%
+#Now, normalize the spectra 
+normalized_flux = flux / continuum_flux
+
+plt.plot(wavelengths, normalized_flux, label = 'normalized flux', alpha = 0.6)
+plt.ylabel('Flux')
+plt.xlim(1080,1085)
+plt.show()
+# %%
