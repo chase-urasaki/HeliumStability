@@ -60,17 +60,37 @@ ABerr_corr = binary_table['FluxErrABTelluCorrected']
 # Define the wavelength range
 wl_min, wl_max = 1000, 1100
 
+P_beta_min, P_beta_max = 1250, 1300
+P_gamma_min, P_gamma_max = 1050, 1150
+
 # Get indices where wavelengths are within the range
 indices = np.where((wl >= wl_min) & (wl <= wl_max))[0]
 extracted_interval_wl = wl[indices]
 extracted_interval_ABflux = ABflux[indices]
 extracted_interval_ABflux_corr = ABflux_corr[indices]
-#%%
+#%% 
+# grab the data for the Paschen Beta line
+P_beta_indicies = np.where((wl >= P_beta_min) & (wl <= P_beta_max))[0]
+P_beta_interval_wl = wl[P_beta_indicies]
+P_beta_interval_flux = ABflux_corr[P_beta_indicies]
+#%% 
+# Get the data for the Paschen Gamma line 
+P_gamma_indicies = np.where((wl >= P_gamma_min) & (wl <= P_gamma_max))[0]
+P_gamma_interval_wl = wl[P_gamma_indicies]
+P_gamma_interval_flux = ABflux_corr[P_gamma_indicies]
 
+#%%
+# From NIST
+P_beta_air = 1281.8072 
+P_gamma_air =1093.817
 # He I air from NIST
 HeI_1_air= 1082.909
 HeI_2_air = 1083.025
 HeI_3_air = 1083.034
+
+# From NIST
+Si_1_air = 1082.7091
+Mg_1_air = 1081.1084
 
 # Functions to convert wavelengths back and forth
 def air_to_vac(wl): 
@@ -89,6 +109,7 @@ def vac_to_air(wl):
 HeI_1_vac = air_to_vac(HeI_1_air)
 HeI_2_vac = air_to_vac(HeI_2_air)
 HeI_3_vac = air_to_vac(HeI_3_air)
+
 #%%
 # Plot the results: Spectrum in air and not barycenter corrected ("RAW")
 plt.figure(figsize=(10,8))
@@ -141,8 +162,40 @@ plt.text(Mg_1_air, 0.013,  'Mg I - air', rotation=90)
 plt.title('Spectrum in air and doppler corrected - wavelengths match!')
 #%%
 # We expect to see the same results in vacuum 
-
+##################################################
 # Spectrum in vacuum and barycenter corrected
+
+fig, (ax1, ax2, ax3) = plt.subplots(3,1, figsize=(10,15), constrained_layout = True)
+fig.suptitle('Spectrum in Vacuum and Barycenter Corrected')
+ax1.set_title('Stellar and He* Lines')
+ax1.axvline(HeI_1_vac, color='red', linestyle='dotted')
+ax1.axvline(HeI_2_vac, color='red', linestyle='dotted')
+ax1.axvline(HeI_3_vac, color='red', linestyle='dotted')
+ax1.text(HeI_1_vac, 0.013, 'He I - vac ', rotation=90)
+ax1.plot(apply_doppler_correction(extracted_interval_wl, v_star), extracted_interval_ABflux_corr, color='black', label = 'corrected')
+ax1.axvline(air_to_vac(Si_1_air), color = 'green', ls = 'dotted')
+ax1.text(air_to_vac(Si_1_air), 0.013, 'Si I - vac', rotation = 90)
+ax1.axvline(air_to_vac(Mg_1_air), color = 'blue', ls = 'dotted')
+ax1.text(air_to_vac(Mg_1_air), 0.013,  'Mg I - vac', rotation=90)
+ax1.set_xlim(1080,1085)
+ax1.set_ylabel('Flux')
+ax1.set_xlabel('Wavelenth [nm]')
+
+ax2.set_title(r'Paschen $\beta$ Line')
+ax2.axvline(air_to_vac(P_beta_air), color = 'm', ls ='dotted')
+ax2.plot(apply_doppler_correction(P_beta_interval_wl, v_star), P_beta_interval_flux, color='black')
+ax2.set_xlim(1280,1285)
+ax2.set_ylabel('Flux')
+ax2.set_xlabel('Wavelenth [nm]')
+
+ax3.set_title(r'Paschen $\gamma$ Line')
+ax3.axvline(air_to_vac(P_gamma_air), color = 'c', ls = 'dotted')
+ax3.plot(apply_doppler_correction(P_gamma_interval_wl, v_star), P_gamma_interval_flux, color = 'k')
+ax3.set_xlim(1092, 1097)
+ax3.set_ylabel('Flux')
+ax3.set_xlabel('Wavelenth [nm]')
+
+#%%
 #Plot measured and line positions
 plt.axvline(HeI_1_vac, color='red', linestyle='dotted')
 plt.axvline(HeI_2_vac, color='red', linestyle='dotted')
@@ -165,6 +218,9 @@ plt.axvline(air_to_vac(Mg_1_air), color = 'blue', ls = 'dotted')
 plt.text(air_to_vac(Mg_1_air), 0.013,  'Mg I - vac', rotation=90)
 
 plt.title('Spectrum in vac and doppler corrected - wl matches!')
+
+np.size(P_gamma_interval_flux)
+np.size(P_beta_interval_flux)
 #%%
 
 # Try fitting the Mg line first 
@@ -236,3 +292,5 @@ plt.ylabel('Flux')
 plt.xlim(1080,1085)
 plt.show()
 # %%
+# Grab the two Hydrogen lines 
+
